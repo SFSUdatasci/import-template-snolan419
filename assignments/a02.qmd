@@ -1,0 +1,97 @@
+---
+title: "Tidy Data"
+subtitle: ""
+format:
+  html:
+    toc: true
+    toc-depth: 3
+execute:
+  warning: false
+  message: false
+---
+
+# Introduction
+
+I wish to know if my data is tidy. Let's look at it.
+
+```{r}
+library(here)
+library(readr)
+library(ggplot2)
+```
+
+# Data
+
+This is some data I collected for my thesis. I counted the flowers on twenty California poppy plants every week between February and June at Mount Diablo State Park. My advisor measured the longest rosette leaf on each plant in April to get a measure of plant size.
+
+```{r}
+flowercount <- read_csv(here::here("data/raw", "flowercount.csv"))
+plantsize = read_csv(here::here("data/raw", "plant_size.csv"))
+
+# changing date column type from string to date
+flowercount$date = as.Date(flowercount$date, "%m/%d/%Y")
+```
+
+Here is a visualization I made of the flower count data. Each color represents a unique individual. It's a little hard to tell plants apart in this graph. Regardless, I think the most important information we can see is that there was a flowering peak in April, and then plants afterwards only produced flowers seldomly.
+
+```{r}
+# Uncomment if you want more inspection output
+ #names(flowercount)
+ #str(flowercount)
+ #head(flowercount)
+ #summary(flowercount)
+ 
+ flowercount_columns = ggplot(flowercount, aes(x = date, y = flower_count, fill = rep)) +
+  geom_col(show.legend = FALSE) + 
+  xlab("Date") +
+  ylab("Number of flowers") +
+  #labs(subtitle=titleFig5, fill = 'Flagged plant (#1 - #20)') + 
+  scale_fill_distiller(palette = 'Oranges') + 
+  theme_classic()
+
+print(flowercount_columns)
+```
+
+I then made a new data frame to contain the total number of flowers produced by each plant across the study period. I merged this data frame, called 'reproductive_output,' with the plant size data frame. I was new to R programming when I wrote this code. I didn't know many dplyr functions, so I wrote a custom script to build a new data frame from scratch. A visualization follows:
+
+```{r}
+# initializing an empty data frame
+reproductive_output <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(reproductive_output) <- c('rep', 'flowerTotal')
+
+# adding the reproductive output of each plant to the data frame using a for-loop.
+for (n in seq(1,20)) {
+  f_total = sum(flowercount[which(flowercount$rep==n), 6])
+  reproductive_output[nrow(reproductive_output) + 1,] = c(n,f_total)
+}
+
+# merging the two data frames.
+reproductive_output = merge(reproductive_output, plantsize)
+
+# defining a new variable that contains a graph.
+reproductive_output_scatter = ggplot(reproductive_output, aes(x=radius_m,y=flowerTotal)) + 
+  geom_point() +
+  xlab("Plant radius (m)") +
+  ylab("Total lifetime number of flowers")+
+  scale_y_log10() +
+  scale_x_log10() +
+  geom_smooth(method="lm",se=TRUE) +
+  theme_classic()
+
+# output
+print(reproductive_output_scatter)
+```
+
+# Analysis
+
+Let's look at the new dataframe that I put together to see whether it is tidy.
+
+```{r}
+print(reproductive_output)
+```
+
+Each column is a variable, of which there are four: 'rep,' 'flowerTotal,' 'radius_ft,' and 'radius_m.' Each row represents the observation of a single plant. There are 20 plants, identified by the 'rep' column. This column was used as the key to merge the 'flowercount' and 'plantsize' data frames. Each cell contains a value, except for rep 20. This plant had died before we could measure its radius, so the values for 'radius_ft' and 'radius_m' are not available.
+
+# Conclusion
+
+I believe the data frame I constructed, 'reproductive_output,' is tidy. It does contain missing values, but there is a good reason for them. I was able to construct this data frame because 'plantsize' contained the rep column, which acted as a foreign key to 'flowercount.'
