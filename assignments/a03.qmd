@@ -9,6 +9,8 @@ format: html
 Let's use the dplyr and tidyr packages in R to clean and wrangle data. These packages come with a number of useful functions, and it's a good idea to be familiar with them. I've used a few before, but my lack of familiarity with some dplyr and tidyr has lead me to develop some convoluted workarounds. Hopefully I can learn some new skills that can simplify my workflow.
 
 ```{r}
+library(here)
+library(readr)
 library(dplyr)
 library(tidyr)
 ```
