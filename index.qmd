@@ -10,3 +10,11 @@ Welcome!
 This is my portfolio for learning **R, data analysis, GitHub, and Quarto**.
 
 ## Assignments
+
+```{r}
+# reading in data using relative paths
+bg_chem_dat <- read.csv("data/raw/BGchem2008data.csv", stringsAsFactors = FALSE)
+
+# define total N column as (NO3 column + NO2 column + NH4 column)
+# define N/P column as (total N column / P column)
+```
