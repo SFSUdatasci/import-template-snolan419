@@ -1,0 +1,70 @@
+---
+title: "R Practice: Tidy Data and Joins"
+author: Shea N.
+format: html
+---
+
+# Introduction
+
+Let's use the dplyr and tidyr packages in R to clean and wrangle data. These packages come with a number of useful functions, and it's a good idea to be familiar with them. I've used a few before, but my lack of familiarity with some dplyr and tidyr has lead me to develop some convoluted workarounds. Hopefully I can learn some new skills that can simplify my workflow.
+
+```{r}
+library(here)
+library(readr)
+library(dplyr)
+library(tidyr)
+```
+
+# Data
+
+We're looking at some data on commercial salmon catches from the Alaska Department of Fish and Game. The function below reads in the data from a link, so it should download the most recent version when run. The data was published in 2016.
+
+```{r}
+catch_original <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
+```
+
+# Analysis
+
+```{r}
+# First, define the variable containing the final dataframe after all the functions it will be piped through.
+# I have to admit, coming from a python background I find this piping method very counter-intuitive, since defining the final output first seems to run counter to the control flow. I can see the merit if one wishes to avoid defining variables. I suppose it makes more sense to consider a piping operation as analogous to a function.
+mean_region <- catch_original %>%
+  
+# Then we select the columns we're interested in. We are not interested in the All and notesRegCode columns.  
+  select(-All, -notesRegCode) %>% 
+  
+# Then we edit values in the Chinook column using mutate and if_else, to convert 'I' values to 1.  
+  mutate(Chinook = if_else(Chinook == "I", "1", Chinook)) %>% 
+
+# Then call mutate again to convert the Chinook values from the character type to the numeric type.  
+  mutate(Chinook = as.numeric(Chinook)) %>% 
+
+# Then we call the pivot longer function to convert the dataframe formate from wide to long.
+# We do not inclue the region and year columns in this operation.
+  pivot_longer(-c(Region, Year), 
+
+# We send the column names to a new column called 'species.'
+               names_to = "species", 
+
+# We send the values in the pivoted columns to a new column called 'catch.'
+               values_to = "catch") %>%
+  
+# We then mutate the catch column to convert from thousands of fish to numbers of individual fish.
+  mutate(catch = catch*1000) %>%
+  
+# Then we group and send observations to new dataframes, separated by region.
+  group_by(Region) %>%
+  
+# We then extract the mean value for the catch column from each regional dataframe, and combine those values into a new dataframe containing two columns: region and mean_catch.
+  summarize(mean_catch = mean(catch)) %>% 
+
+# Then we sort columns by mean catch in descending order using the arrange() and desc() functions.
+  arrange(desc(mean_catch))
+
+# Disply the first few rows of the output
+head(mean_region)
+```
+
+# Discussion
+
+Success. It looks like region SSE (south south east?) had the largest average number of fish caught, at 3184661 catches. I am not sure what period of time this number is averaged across, or how large the region is, but I am sure the metadata would provide some answers. The least number of catches was at SOP. I am not sure what SOP stands for (Salmon? Oh Please... I'm sure the metadata has the answer for this as well), but it honestly isn't too far behind from the other regions. They're all in the same order of magnitude, but the difference is in hundreds of thousands of catches. Salmon is a valuable source of food, especially in Alaska, so while SSE having 3x the average amount of SOP's salmon may not be the greatest difference in terms of numbers (after all, the bottom three regions contains more fish than the top region alone), I am sure it means a lot in terms of economic output.

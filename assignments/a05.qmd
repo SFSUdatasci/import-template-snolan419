@@ -1,0 +1,129 @@
+---
+title: "Data Visualization"
+author: Shea N.
+format: html
+---
+
+# Introduction
+
+Let's practice some data visualization in R. Today I will use the ggplot2 package to make graphs, as well as the leaflet package to make a simple map widget. As always, I will start by calling in the requisite libraries.
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(forcats) # makes working with factors easier
+library(ggplot2)
+library(leaflet) # interactive maps
+library(DT) # interactive tables
+library(scales) # scale functions for visualization
+library(janitor) # expedite cleaning and exploring data
+library(viridis) # colorblind friendly color palette
+```
+
+# Data
+
+Today we are using some data from Kraus-Polk and Milligan (2020) that records human activity at restoration sites for fish in the Sacramento-San Joaquin Delta. The following code chunk defines a data frame called 'delta_visits_raw' using a csv downloaded from this website: https://portal.edirepository.org/nis/mapbrowse?packageid=edi.587.1. I also added in some code from the textbook that perform some quality control.
+
+```{r}
+# read in data from the data directory after manually downloading data 
+delta_visits_raw <- read_csv(here::here("data/raw/Socioecological_monitoring_data.csv"))
+
+# Transform column names into the same format (very useful function indeed.)
+delta_visits <- delta_visits_raw %>% 
+    janitor::clean_names()
+
+# Pivoting the data frame into long format to make it into tidy data.
+visits_long <- delta_visits %>% 
+    pivot_longer(cols = c(sm_boat, med_boat, lrg_boat, bank_angler, scientist, cars),
+                 names_to = "visitor_type",
+                 values_to = "quantity") %>%
+    rename(restore_loc = eco_restore_approximate_location) %>% 
+    select(-notes)
+
+# Creating a new data frame that contains each unique location with its accompanying coordinates.
+locations <- visits_long %>%
+    distinct(restore_loc, .keep_all = TRUE) %>%
+    select(restore_loc, latitude, longitude)
+
+# Creates a new data frame that summarizes daily visits by date and visitor type at each restoration site.
+daily_visits_loc <- visits_long %>%
+    group_by(restore_loc, date, visitor_type) %>% 
+    summarise(daily_visits = sum(quantity))
+
+# Creates a new data frame that includes total daily visits at each restoration site and lists them in descending order.
+daily_visits_totals <- daily_visits_loc %>% 
+    group_by(restore_loc) %>%
+    mutate(n = sum(daily_visits)) %>% 
+    ungroup() %>%
+    mutate(restore_loc = fct_reorder(restore_loc, desc(n)))
+  
+# displaying the previous data frame. 
+head(daily_visits_totals)
+```
+
+# Plot
+
+Here I used more code from the textbook to recreate my favorite graph. I went through the chunk and wrote in some comments explaining what is happening in each line.
+
+```{r}
+# Defining a custom theme for a ggplot. 
+# Uses the default black and white theme but adjusts the base size to 16
+my_theme <- theme_bw(base_size = 16) +
+
+# Adjusting the legend position and removing the y-axis ticks.
+    theme(legend.position = "bottom",
+          axis.ticks.y = element_blank())
+
+# Calling the ggplot function using the daily_visits_totals data frame.
+# The aesthetics function defines daily_visits as the x-axis and restore_loc as the y axis.
+# The fill color corresponds to visitor type.
+ggplot(data = daily_visits_totals,
+       aes(x = daily_visits, y = restore_loc,
+           fill = visitor_type)) +
+  
+# Adding the column geometry.
+    geom_col() +
+  
+# Defining the fill colors using the viridis color scheme.
+    scale_fill_viridis_d() +
+  
+# Defining custom labels in the plot.
+    labs(x = "Number of Visits",
+         y = "Restoration Location",
+         fill = "Type of Visitor",
+         title = "Total Number of Visits to Delta Restoration Areas by visitor type",
+         subtitle = "Sum of all visits during study period") +
+  
+# Defining the breaks in the x-axis and removing the default white-space. 
+    scale_x_continuous(breaks = seq(0,120, 20), expand = c(0,0)) +
+  
+# Calling in the custom theme defined at the top of the chunk.
+    my_theme
+```
+
+# Map
+
+I added in my favorite leaflet map here, and I explained what is happening in the code in the same manner as above.
+
+```{r}
+# Making a leaflet map with the locations dataframe.
+leaflet(locations) %>%
+  
+# Piping in the addTiles function. This is the base map on which geospatial data will be placed.
+    addTiles() %>%
+  
+# Adding in vectors. In this case the addMarkers function for points defined by a latitude and a longitude.
+# There is also a pop-up that tells us the name of the location in the restore_loc column.
+    addMarkers(
+        lng = ~ longitude,
+        lat = ~ latitude,
+        popup = ~ restore_loc
+    )
+```
+
+# Discussion
+
+I like the ggplot visualization. It is eye-catching, clear, and informative. The map is simple and elegant, and it is always useful to include some cartographic information when presenting information that is location dependent. However, I feel this map is more useful for a website where you can interact with the html widget.
+
+Drawing from my experience working with GIS software in the National Park Service, I believe the design principles that Edward Tufte invokes in his book, *The Visual Display of Quantitative Information,* also apply to maps. Ideally, the cartographer wishes to limit the amount of ink on the map required to convey the message it contains. Default base maps often contain too much information, and unfortunately it is often impossible to tweak them. I am curious to know if the leaflet package supports more customization options than what we've been shown so far in the course.
