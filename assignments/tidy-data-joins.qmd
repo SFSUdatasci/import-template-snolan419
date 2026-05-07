@@ -1,0 +1,136 @@
+---
+title: "R Practice: Tidy Data and Joins"
+author: Shea N.
+format: html
+---
+
+# Introduction
+
+I started orking on the assignment by following the textbook, so there are some extra sections that you can skip. We want to know where and when to observe the greatest number of birds in Pheonix, Arizona.
+
+# Excercise 1: practice joins
+
+```{r}
+library(here)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+```
+
+# Data
+
+Here is our data. It comes from a study on bird surveys at urban parks from Warren et al. in 2021. Here is the website link: https://portal.edirepository.org/nis/mapbrowse?scope=knb-lter-cap&identifier=256&revision=10
+
+```{r}
+bird_observations <- read_csv(here::here("data/raw", "52_pp52_birds_1.csv"))
+sites <- read_csv(here::here("data/raw", "52_pp52_sites_1.csv"))
+surveys <- read_csv(here::here("data/raw", "52_pp52_surveys_1.csv"))
+taxalist <- read_csv(here::here("data/raw", "52_pp52_taxalist_1.csv"))
+```
+
+# 2 Get familiar with the data
+
+What are the primary and foreign keys for the tables bird_observations and taxalist?
+
+```{r}
+#head(bird_observations)
+#head(taxalist)
+print('Unique values for species_id in bird_observations')
+unique(bird_observations$species_id)
+print('Unique values for species_id in taxalist')
+unique(taxalist$species_id)
+```
+
+The foreign key that links bird_observations to taxalist is species_id.
+
+# 3 Create a subset of bird_observations
+
+```{r}
+birds_subset <- bird_observations %>% 
+  filter(species_id %in% c("BHCO", "RWBL")) %>% 
+  filter(site_id %in% c("LI-W", "NU-C"))
+```
+
+# 4 Use left_join() to merge birds_subset with the tables sites
+
+What do you expect the outcome data frame when doing left_join() between birds_subset and sites to look like?
+
+```{r}
+head(birds_subset)
+head(sites)
+```
+
+If we assume birds_subset is table A, sites is table B, and the foreign key is site_id, then the output would be a data frame similar to birds_subset but with the extra columns from table B added.
+
+```{r}
+# syntax using pipe
+birds_left <- birds_subset %>% 
+  left_join(y = sites, by = "site_id") # using site_id as the foreign key.
+# don't see x = birds_subset here because piping in birds_subset means it automatically assumes birds_subset as x.
+
+# syntax without pipe
+#birds_left <- left_join(x = birds_subset, y = sites, by = "site_id")
+
+head(birds_left)
+```
+
+# 5 Use left_join() to merge birds_subset with the tables sites
+
+What do you expect a full_join() between birds_subset and sites to contain?
+
+```{r}
+print('Unique values for site_id in birds_subset')
+unique(birds_subset$site_id)
+print('Unique values for site_id in sites')
+unique(sites$site_id)
+```
+
+The birds_subset data frame only contains data for two sites we filtered for: 'NU-C' and 'LI-W'. A left join only added in the information from the sites data frame for these two sites. A full join would add in new rows for each of the sites not in the birds_subset data frame. For these new rows, the columns for survey_id, species_id, distance, bird_count, notes, seen, heard, and direction would populate with null values.
+
+```{r}
+# syntax using pipe
+birds_full <- birds_subset %>% 
+  full_join(y = sites, by = "site_id")
+
+tail(birds_full)
+```
+
+# Analysis
+
+I just realized the above sections were unnecesary to add to this document. I'm keeping them anyway, but now I'm moving on to the actual assignment. Here is the analysis:
+
+```{r}
+# making the birds_obs_subset as specified in the textbook
+
+bird_observations <- bird_observations %>% 
+  rename(bird_obs_notes = notes)
+
+bird_obs_subset <- bird_observations %>% 
+  full_join(y = taxalist, by = "species_id") %>% 
+  full_join(y = sites, by = "site_id") %>% 
+  full_join(y = surveys, by = c("site_id", "survey_id")) %>%  
+  select(survey_date, common_name, park_name, bird_count, observer)
+
+bird_obs_subset <- bird_obs_subset %>% 
+  mutate(observer = if_else(condition = observer == "Josh Burns", 
+                            true = "J. Burns", 
+                            false = observer))
+
+# making the month column
+bird_obs_subset$month = month(bird_obs_subset$survey_date)
+bird_obs_subset <- bird_obs_subset %>% 
+  mutate(month = as.factor(month)) %>%
+  relocate(month, .after = survey_date) %>%
+  filter(park_name %in% c("Linda", "Orme", "Palomino", "Sonrisa")) %>%
+  group_by(park_name, month)
+
+total_birds = bird_obs_subset %>%
+  summarize(total_birds = sum(bird_count)) %>%
+  arrange(desc(total_birds))
+
+print(total_birds)
+```
+# Summary
+
+The resulting data frame outputs the total number of birds observed each month for each park. We can not see that the greatest number of birds was observed in June at Orme, Sonrisa, and Palomino. I wonder if this is due to a biological reason, or if this simply reflects that summer is an ideal time for bird watching. There were some rows with NA values, I would probably go back and remove those. This could be done by filtering them out, or identifying where in the pipeline these rows arose (I suspect it was in the joins).
