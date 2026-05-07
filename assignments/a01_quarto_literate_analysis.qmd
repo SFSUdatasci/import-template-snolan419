@@ -40,7 +40,7 @@ Quarto runs R in the same way as a script: objects only exist after the chunks t
 Using `here()` is a convenient way to build paths relative to your project root (e.g., your `.qmd` might live in `scripts/` while data lives in `data/`).
 
 ```{r}
-bg_chem <- read_csv(here::here("data/raw", "BGchem2008data.csv"))
+bg_chem <- read_csv(here::here("data", "raw/BGchem2008data.csv"))
 ```
 
 (Optional) Quick peek at the data:
@@ -94,12 +94,9 @@ plot(
   ylab = "Total nitrogen (NO2 + NO3 + NH4)",
   main = "Ocean water samples: total N vs P"
 )
-
-lm(phos ~ N, data = bg_chem)
-# darn. I dont feel like dropping the unused columns right now.
 ```
 
-There is a clean linear relationship between the concentration of phosphate to the concentration of total Nitrogen in ocean water. A linear regression would tell us if relationship is the Redfield ratio, but looking on this graph it does not seem that this is the 16:1 ratio. I wonder if the micrometer units require conversion to moles, and if the presence of oxygen and hydrogen in the total Nitrogen variable needs accounting for. Regardless of these details, I will assume that this is what the Redfield ratio looks like.
+There is a clear linear relationship between the concentration of phosphate to the concentration of total Nitrogen in ocean water. A linear regression would tell us if relationship is the Redfield ratio, but looking on this graph it does not seem that this is the 16:1 ratio. I wonder if the micrometer units require conversion to moles, and if the presence of oxygen and hydrogen in the total Nitrogen variable needs accounting for. Regardless of these details, I will assume that this is what the Redfield ratio looks like.
 
 One interesting detail that is apparent is that there are outliers from the ratio, where phosphate occurs at lower than expected details. My class partner Esha noticed in that data that these outliers seem to be measurements taken at lower depths in the ocean. In the research by Martiny et al. published in 2013, it was noted that certain marine organisms are composed of different ratios of N:P. Specifically, cyanobacteria tend to be richer in phosphorus than Eukaryotes. Phosphorous is an important elemental in the construction of RNA and DNA. From this information, one might predict that cyanobacteria will be less numerous in environments with low concentration of phosphates.
 

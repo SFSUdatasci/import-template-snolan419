@@ -9,10 +9,14 @@ listing:
 Welcome!\
 This is my portfolio for learning **R, data analysis, GitHub, and Quarto**.
 
-## Assignments
+## Course Lessons
 
-[a03: Quality Control](https://sfsudatasci.github.io/import-template-snolan419/assignments/a03.html)
+[a01: Introduction to Literate Analysis Using Quarto](https://sfsudatasci.github.io/import-template-snolan419/assignments/a01_quarto_literate_analysis.html)
+
+[a03: Cleaning and Wrangling Data](https://sfsudatasci.github.io/import-template-snolan419/assignments/a03.html)
 
 [a05: Data Visualization](https://sfsudatasci.github.io/import-template-snolan419/assignments/a05.html)
+
+## Course Practice Sessions
 
 [Tidy Data Joins](https://sfsudatasci.github.io/import-template-snolan419/assignments/tidy-data-joins.html)
