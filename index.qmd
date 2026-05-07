@@ -6,9 +6,13 @@ listing:
   fields: [title, date]
 ---
 
-Welcome!  
+Welcome!\
 This is my portfolio for learning **R, data analysis, GitHub, and Quarto**.
 
 ## Assignments
 
 [a03: Quality Control](https://sfsudatasci.github.io/import-template-snolan419/assignments/a03.html)
+
+[a05: Data Visualization](https://sfsudatasci.github.io/import-template-snolan419/assignments/a05.html)
+
+[Tidy Data Joins](https://sfsudatasci.github.io/import-template-snolan419/assignments/tidy-data-joins.html)
